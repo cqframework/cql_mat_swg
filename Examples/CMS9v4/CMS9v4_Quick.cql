@@ -2,9 +2,10 @@ library CMS9 version '4'
 
 using QUICK // version '1'
 
-valueset "From Patient to Provider: Feeding Intention-Breast": '2.16.840.1.113762.1.4.1045.29'
+valueset "Feeding Intention-Breast": '2.16.840.1.113762.1.4.1045.29'
+valueset "Feeding Intention-Not-To-Breast": 'TBD' // Code '636111000124114' from "SNOMED-CT" display: 'Mother refuses to breastfeed (situation)'
 valueset "Galactosemia": '2.16.840.1.113883.3.117.1.7.1.35'
-valueset "Single Live Birth": '2.16.840.1.113883.3.117.1.7.1.25)'
+valueset "Single Live Birth": '2.16.840.1.113883.3.117.1.7.1.25'
 valueset "Single Live Born Newborn Born in Hospital": '2.16.840.1.113883.3.117.1.7.1.26'
 valueset "Encounter Inpatient": '2.16.840.1.113883.3.666.5.307'
 valueset "Estimated Gestational Age at Birth": '2.16.840.1.113762.1.4.1045.47'
@@ -88,6 +89,7 @@ define Numerator1:
   EncounterInpatient E
     with "Breast Milk Feeding" F such that F.effectiveDateTime in E.period
     without "Other Than Breast Milk Feeding" O such that O.effectiveDateTime in E.period
+    //SCTID: 289081008 Unable to perform breast-feeding (finding)
 
 // EndRegion: Numerator 1
 
@@ -120,14 +122,48 @@ define InitialPopulation2:
 define "Infant Birth Date":
   ["Patient Characteristic": "Birthdate"]
 
-// TODO: In the QDM, this is expressed as the "absence of an intention to breast feed",
+// Assuming a value set exists
+define "Intention Not To Breast Feed":
+  EncounterInpatient E
+    with [RiskAssessment: "Feeding Intention-Not-To-Breastfeed"] R
+      such that R.date in E.period
+
+// Using the specific code
+define "Intention Not To Breast Feed":
+  EncounterInpatient E
+    with [RiskAssessment] R
+      such that R.date in E.period
+        and R.type = Code 'breastfeeding-intention' from "http://example.org/dataelements"
+
+/* Other options for representing negative breastfeeding intention
+// NOTE: In the QDM, this is expressed as the "absence of an intention to breast feed",
 // but this is not the same as the intended "presence of intention not to breast feed"
 define "Intention Not To Breast Feed":
   EncounterInpatient E
-    without [Communication: "Feeding Intention-Breast"] C
+    with [Communication] C
       such that C.sender is Patient
         and exists (C.recipient R where R is Practitioner)
         and C.sent <= 1 hour after start of "Infant Birth Date"
+        // NOTE: This code may be temporary (situational?)
+        // Could potentially relate it to the procedure as an assertion to overcome that? May need to be a different code altogether
+        and C.category contains Code '636111000124114' from "SNOMED-CT" display: 'Mother refuses to breastfeed (situation)'
+
+// Single Code Value-set versus inline Code
+define "Intention Not To Breast Feed":
+  EncounterInpatient E
+    with [Communication: "Feeding Intention-Not-To-Breastfeed"]
+      such that C.sender is Patient
+        and exists (C.recipient R where R is Practitioner)
+        and C.sent <= 1 hour after start of "Infant Birth Date"
+
+define "Intention Not To Breast Feed":
+  EncounterInpatient E
+    with [Communication] C
+      such that C.sender is Patient
+        and C.category contains Code '636111000124114' from "SNOMED-CT" display: 'Mother refuses to breastfeed (situation)'
+        and exists (C.recipient R where R is Practitioner)
+        and C.sent <= 1 hour after start of "Infant Birth Date"
+*/
 
 define DenominatorExclusions2:
   DenominatorExclusions1
