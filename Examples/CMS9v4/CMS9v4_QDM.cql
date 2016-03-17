@@ -24,69 +24,69 @@ parameter MeasurementPeriod Interval<DateTime>
 
 context Patient
 
-define EncounterInpatient:
+define "$Encounter Inpatient":
   ["Encounter, Performed": "Encounter Inpatient"] E
-    where days between E."admissionDatetime" and E."dischargeDatetime" <= 120
-      and E."dischargeDatetime" in MeasurementPeriod
+    where days between E.admissionDatetime and E.dischargeDatetime <= 120
+      and E.dischargeDatetime in MeasurementPeriod
 
-define "Gestational Age at Birth <= 37 weeks":
+define "$Gestational Age at Birth <= 37 weeks":
   ["Physical Exam, Performed": "Gestational Age At Birth"] O
     where O.quantitativeResult >= 259 days // 37 weeks
     // NOTE: Had to add quantitativeResult to QDM to get proper type resolution here
 
-define "Live Birth":
+define "$Live Birth":
   ["Diagnosis": "Single Live Birth"] // NOTE: QDM 4.2 only has Diagnosis, not Diagnosis, Active
     union ["Diagnosis": "Single Live Born Newborn Born in Hospital"]
 
-define "Galactosemia Diagnosis":
+define "$Galactosemia Diagnosis":
   ["Diagnosis": "Galactosemia"]
 
-define "Parenteral Nutrition Procedure":
+define "$Parenteral Nutrition Procedure":
   ["Procedure, Performed": "Parenteral Nutrition"]
 
-define "Live Birth Infants without Parenteral Nutrition":
+define "$Live Birth Infants without Parenteral Nutrition":
   "$Encounter Inpatient" E
-    with "Gestational Age at Birth <= 37 weeks" G such that G.startDatetime between E."admissionDatetime" and E."dischargeDatetime"
-    with "Live Birth" B such that B."onsetDatetime" between E."admissionDatetime" and E."dischargeDatetime"
-    without "Galactosemia Diagnosis" D such that D."onsetDatetime" between E."admissionDatetime" and E."dischargeDatetime"
-    without "Parenteral Nutrition Procedure" P such that P."startDatetime" between E."admissionDatetime" and E."dischargeDatetime"
+    with "$Gestational Age at Birth <= 37 weeks" G such that G.startDatetime between E.admissionDatetime and E.dischargeDatetime
+    with "$Live Birth" B such that B.onsetDatetime between E.admissionDatetime and E.dischargeDatetime
+    without "$Galactosemia Diagnosis" D such that D.onsetDatetime between E.admissionDatetime and E.dischargeDatetime
+    without "$Parenteral Nutrition Procedure" P such that P.startDatetime between E.admissionDatetime and E.dischargeDatetime
 
 // Region: Initial Population 1
 
-define InitialPopulation1:
-  "Live Birth Infants without Parenteral Nutrition"
+define "$Initial Population 1":
+  "$Live Birth Infants without Parenteral Nutrition"
 
 // EndRegion: Initial Population 1
 
 // Region: Denominator 1
 
-define Denominator1:
-  InitialPopulation1
+define "$Denominator 1":
+  "$Initial Population 1"
 
 // EndRegion: Denominator 1
 
 // Region: Denominator Exclusions 1
 
-define DenominatorExclusions1:
-  EncounterInpatient E
-    where E."facilityLocation" in "Neonatal Intensive Care Unit (NICU)"
-      or E."dischargeStatus" in "Patient Expired"
-      or E."dischargeStatus" in "Discharge To Acute Care Facility"
+define "$Denominator Exclusions 1":
+  "$Encounter Inpatient" E
+    where E.facilityLocation in Neonatal Intensive Care Unit (NICU)
+      or E.dischargeStatus in Patient Expired
+      or E.dischargeStatus in Discharge To Acute Care Facility
 
 // EndRegion: Denominator Exclusions 1
 
 // Region: Numerator 1
 
-define "Breast Milk Feeding":
+define "$Breast Milk Feeding":
   ["Substance, Administered": "Breast Milk"]
 
-define "Other Than Breast Milk Feeding":
+define "$Other Than Breast Milk Feeding":
   ["Substance, Administered": "Dietary Intake Other than Breast Milk"]
 
-define Numerator1:
-  EncounterInpatient E
-    with "Breast Milk Feeding" F such that F."startDatetime" between E."admissionDatetime" and E."dischargeDatetime"
-    without "Other Than Breast Milk Feeding" O such that O."startDatetime" between E."admissionDatetime" and E."dischargeDatetime"
+define "$Numerator 1":
+  "$Encounter Inpatient" E
+    with "Breast Milk Feeding" F such that F.startDatetime between E.admissionDatetime and E.dischargeDatetime
+    without "Other Than Breast Milk Feeding" O such that O.startDatetime between E.admissionDatetime and E.dischargeDatetime
 
 // EndRegion: Numerator 1
 
@@ -104,8 +104,8 @@ define Numerator1:
 
 // Region: Initial Population 2
 
-define InitialPopulation2:
-  "Live Birth Infants without Parenteral Nutrition"
+define "$Initial Population 2":
+  "$Live Birth Infants without Parenteral Nutrition"
 
 // EndRegion: Initial Population 2
 
@@ -116,26 +116,26 @@ define InitialPopulation2:
 // Region: Denominator Exclusions 2
 
 // TODO: How do we indicate that this is the infant's birth date, not the mother's?
-define "Infant Birth Date":
+define "$Infant Birth Date":
   (singleton from (["Patient Characteristic": "Birthdate"])).startDatetime
 
 // TODO: In the QDM, this is expressed as the "absence of an intention to breast feed",
 // but this is not the same as the intended "presence of intention not to breast feed"
-define "Intention Not To Breast Feed":
-  EncounterInpatient E
+define "$Intention Not To Breast Feed":
+  "$Encounter Inpatient" E
     without ["Communication: From Patient to Provider": "Feeding Intention-Breast"] C
-      such that C."startDatetime" <= "Infant Birth Date" + 1 hour // NOTE: Would be nice to be able to say 1 hour after "Infant Birth Date"...
+      such that C.startDatetime <= "$Infant Birth Date" + 1 hour // NOTE: Would be nice to be able to say 1 hour after "Infant Birth Date"...
 
-define DenominatorExclusions2:
-  DenominatorExclusions1
-    union "Intention Not To Breast Feed"
+define "$Denominator Exclusions 2":
+  "$Denominator Exclusions 1"
+    union "$Intention Not To Breast Feed"
 
 // EndRegion: Denominator Exclusions 2
 
 // Region: Numerator 2
 
-define Numerator2:
-  Numerator1
+define "$Numerator 2":
+  "$Numerator 1"
 
 // EndRegion: Numerator 2
 

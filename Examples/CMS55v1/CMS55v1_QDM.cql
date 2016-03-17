@@ -53,21 +53,21 @@ parameter MeasurementPeriod default Interval[@2014-01-01T00:00:00.0, @2015-01-01
 
 context Patient
 
-define InpatientEncounters:
+define "$Inpatient Encounters":
 	["Encounter, Performed": "Inpatient"] E
 		where E."length of stay" <= 120 days
 			and E."discharge datetime" ends during MeasurementPeriod
 
-define EDEncounters:
+define "$Emergency Department Encounters":
 	["Encounter, Performed": "Emergency Department Visit"] ED
-		with InpatientEncounters E such that ED."stop datetime" 1 hour or less before start of E.period
+		with "$Inpatient Encounters" E such that ED.stopDatetime 1 hour or less before start of E.period
 
-define MeasureObservation:
-	EDEncounters E
-		where E."start datetime" is not null
-			and E."stop datetime" is not null
-		return minutes between E."facility location arrival datetime" and E."facility location departure datetime"
+define "$Measure Observation":
+	"$Emergency Department Encounters" E
+		where E.startDatetime is not null
+			and E.stopDatetime is not null
+		return minutes between E.facilityLocationArrivalDatetime and E.facilityLocationDepartureDatetime
 
 context Population
 
-define MeasureScore: Median(MeasureObservation)
+define "$Measure Score": Median("$Measure Observation")
