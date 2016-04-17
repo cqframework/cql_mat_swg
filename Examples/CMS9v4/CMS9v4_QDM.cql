@@ -46,10 +46,14 @@ define "$Parenteral Nutrition Procedure":
 
 define "$Live Birth Infants without Parenteral Nutrition":
   "$Encounter Inpatient" E
-    with "$Gestational Age at Birth <= 37 weeks" G such that G.startDatetime between E.admissionDatetime and E.dischargeDatetime
-    with "$Live Birth" B such that B.onsetDatetime between E.admissionDatetime and E.dischargeDatetime
-    without "$Galactosemia Diagnosis" D such that D.onsetDatetime between E.admissionDatetime and E.dischargeDatetime
-    without "$Parenteral Nutrition Procedure" P such that P.startDatetime between E.admissionDatetime and E.dischargeDatetime
+    with "$Gestational Age at Birth <= 37 weeks" G
+      such that G.startDatetime between E.admissionDatetime and E.dischargeDatetime
+    with "$Live Birth" B
+      such that B.onsetDatetime between E.admissionDatetime and E.dischargeDatetime
+    without "$Galactosemia Diagnosis" D
+      such that D.onsetDatetime between E.admissionDatetime and E.dischargeDatetime
+    without "$Parenteral Nutrition Procedure" P
+      such that P.startDatetime between E.admissionDatetime and E.dischargeDatetime
 
 // Region: Initial Population 1
 

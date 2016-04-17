@@ -2,8 +2,6 @@ library CMS9 version '4'
 
 using QUICK // version '1'
 
-codesystem "SNOMED-CT": '2.16.840.1.113883.6.96' version '2016A'
-
 valueset "Feeding Intention-Breast": '2.16.840.1.113762.1.4.1045.29'
 valueset "Feeding Intention-Not-To-Breast": 'TBD' // Code '636111000124114' from "SNOMED-CT" display: 'Mother refuses to breastfeed (situation)'
 valueset "Galactosemia": '2.16.840.1.113883.3.117.1.7.1.35'
@@ -130,13 +128,12 @@ define "Intention Not To Breast Feed":
     with [RiskAssessment: "Feeding Intention-Not-To-Breastfeed"] R
       such that R.date in E.period
 
-define "$Breastfeeding Intention": Code 'breastfeeding-intention' from "http://example.org/dataelements"
-
 // Using the specific code
 define "Intention Not To Breast Feed":
   EncounterInpatient E
-    with [RiskAssessment: "$Breastfeeding Intention"] R
+    with [RiskAssessment] R
       such that R.date in E.period
+        and R.type = Code 'breastfeeding-intention' from "http://example.org/dataelements"
 
 /* Other options for representing negative breastfeeding intention
 // NOTE: In the QDM, this is expressed as the "absence of an intention to breast feed",
