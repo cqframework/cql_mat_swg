@@ -20,8 +20,8 @@ define "In Demographic":
 
 define "Has Asthma Diagnosis":
   exists (
-    ["Diagnosis": "Persistent Asthma"] D
-      where Interval[D.onsetDatetime, D.abatementDatetime] overlaps "Measurement Period"
+    ["Diagnosis": "Persistent Asthma"] Diagnosis
+      where Interval[Diagnosis.onsetDatetime, Diagnosis.abatementDatetime] overlaps "Measurement Period"
   )
 
 define "Has Valid Encounters":

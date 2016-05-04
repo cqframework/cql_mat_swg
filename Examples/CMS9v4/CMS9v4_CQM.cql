@@ -1,6 +1,6 @@
 library CMS9 version '4'
 
-using QUICK // version '1'
+using FHIR // version '1.4'
 
 valueset "Feeding Intention-Breast": '2.16.840.1.113762.1.4.1045.29'
 valueset "Feeding Intention-Not-To-Breast": 'TBD' // Code '636111000124114' from "SNOMED-CT" display: 'Mother refuses to breastfeed (situation)'
@@ -21,75 +21,82 @@ valueset "Payer SOP": '2.16.840.1.114222.4.11.3591'
 valueset "Race CDCREC": '2.16.840.1.114222.4.11.836'
 valueset "ONC Administrative Sex AdministrativeGender": '2.16.840.1.113762.1.4.1'
 
-parameter MeasurementPeriod Interval<DateTime>
+parameter "Measurement Period" Interval<DateTime>
 
+// NOTE: The patient in context is the infant, not the mother
 context Patient
 
-define EncounterInpatient:
-  [Encounter: "Encounter Inpatient"] E
-    where duration in days of E.period <= 120
-      and end of E.period in MeasurementPeriod
+define "Inpatient Encounter":
+  [Encounter: "Encounter Inpatient"] Encounter
+    where Encounter.status = 'finished'
+      and duration in days of Encounter.period <= 120
+      and end of Encounter.period in "Measurement Period"
 
 define "Gestational Age at Birth <= 37 weeks":
-  [Observation: "Gestational Age At Birth"] O
-    where (singleton from O.component).valueQuantity >= 259 days // 37 weeks
+  [Observation: "Gestational Age At Birth"] Observation
+    where Observation.status in { 'final', 'amended' }
+      and Observation.valueQuantity >= 37 weeks
 
 define "Single Live Birth":
-  [Condition: "Single Live Birth"]
-    union [Condition: "Single Live Born Newborn Born in Hospital"]
+  ([Condition: "Single Live Birth"]
+    union [Condition: "Single Live Born Newborn Born in Hospital"]) Condition
+    where Condition.clinicalStatus = 'active'
+      and Condition.verificationStatus = 'confirmed'
 
 define "Parenteral Nutrition":
-  [Procedure: "Parenteral Nutrition"]
+  [Procedure: "Parenteral Nutrition"] Procedure
+    where Procedure.status = 'completed'
 
 define "Galactosemia Diagnosis":
-  [Condition: "Galactosemia"]
+  [Condition: "Galactosemia"] Condition
+    where Condition.clinicalStatus = 'active'
+      and Condition.verificationStatus = 'confirmed'
 
 define "Live Birth Infants without Parenteral Nutrition":
-  EncounterInpatient E
-    with "Gestational Age at Birth <= 37 weeks" G such that G.effectiveDateTime in E.period
-    with "Single Live Birth" B such that B.onsetDateTime in E.period
-    without "Galactosemia" D such that D.onsetDateETime in E.period
-    without "Parenteral Nutrition" P such that P.performedDateTime in E.period
+  "Inpatient Encounter" Encounter
+    with "Gestational Age at Birth <= 37 weeks" GestationalAge such that GestationalAge.effectiveDateTime in Encounter.period
+    with "Single Live Birth" Birth such that Birth.onsetDateTime in Encounter.period
+    without "Galactosemia" Galactosemia such that Galactosemia.onsetDateTime in Encounter.period
+    without "Parenteral Nutrition" Nutrition such that Nutrition.performedDateTime in Encounter.period
 
 // Region: Initial Population 1
 
-define InitialPopulation1:
+define "Initial Population 1":
   "Live Birth Infants without Parenteral Nutrition"
 
 // EndRegion: Initial Population 1
 
 // Region: Denominator 1
 
-define Denominator1:
-  InitialPopulation1
+define "Denominator 1":
+  true
 
 // EndRegion: Denominator 1
 
 // Region: Denominator Exclusions 1
 
-define DenominatorExclusions1:
-  EncounterInpatient E
-    where exists (E.Location L where L.type in "Neonatal Intensive Care Unit (NICU)")
-      or exists (E.hospitalization H where H.dischargeDisposition in "Patient Expired")
-      or exists (E.hospitalization H where H.dischargeDisposition in "Discharge To Acute Care Facility")
+define "Denominator Exclusions 1":
+  "Inpatient Encounter" Encounter
+    where exists (Encounter.location Location where Location.type in "Neonatal Intensive Care Unit (NICU)")
+      or exists (Encounter.hospitalization Hospitalization where Hospitalization.dischargeDisposition in "Patient Expired")
+      or exists (Encounter.hospitalization Hospitalization where Hospitalization.dischargeDisposition in "Discharge To Acute Care Facility")
 
 // EndRegion: Denominator Exclusions 1
 
 // Region: Numerator 1
 
-// TODO: Are these really "MedicationAdministration"?
-// Seems like a stretch but I don't see any other resource in FHIR/QUICK that would be a better fit...
 define "Breast Milk Feeding":
-  [MedicationAdministration: "Breast Milk"]
+  [MedicationAdministration: "Breast Milk"] Feeding
+    where Feeding.status = 'completed'
 
 define "Other Than Breast Milk Feeding":
-  [MedicationAdministration: "Dietary Intake Other than Breast Milk"]
+  [MedicationAdministration: "Dietary Intake Other than Breast Milk"] OtherFeeding
+    where OtherFeeding.status = 'completed'
 
-define Numerator1:
-  EncounterInpatient E
-    with "Breast Milk Feeding" F such that F.effectiveDateTime in E.period
-    without "Other Than Breast Milk Feeding" O such that O.effectiveDateTime in E.period
-    //SCTID: 289081008 Unable to perform breast-feeding (finding)
+define "Numerator 1":
+  "Inpatient Encounter" Encounter
+    with "Breast Milk Feeding" Feeding such that Feeding.effectiveDateTime in Encounter.period
+    without "Other Than Breast Milk Feeding" OtherFeeding such that OtherFeeding.effectiveDateTime in Encounter.period
 
 // EndRegion: Numerator 1
 
@@ -107,7 +114,7 @@ define Numerator1:
 
 // Region: Initial Population 2
 
-define InitialPopulation2:
+define "Initial Population 2":
   "Live Birth Infants without Parenteral Nutrition"
 
 // EndRegion: Initial Population 2
@@ -118,63 +125,32 @@ define InitialPopulation2:
 
 // Region: Denominator Exclusions 2
 
-// TODO: How do we indicate that this is the infant's birth date, not the mother's?
-define "Infant Birth Date":
-  ["Patient Characteristic": "Birthdate"]
-
-// Assuming a value set exists
-define "Intention Not To Breast Feed":
-  EncounterInpatient E
-    with [RiskAssessment: "Feeding Intention-Not-To-Breastfeed"] R
-      such that R.date in E.period
+// NOTE: This assumes a value set exists, but since we are using the "Assessment" pattern in the connect-a-thon,
+// we switch to the specific code definition below
+//define "Intention Not To Breastfeed":
+//  "Inpatient Encounter" Encounter
+//    with [RiskAssessment: "Feeding Intention-Not-To-Breastfeed"] RiskAssessment
+//      such that RiskAssessment.date in Encounter.period
 
 // Using the specific code
-define "Intention Not To Breast Feed":
-  EncounterInpatient E
-    with [RiskAssessment] R
-      such that R.date in E.period
-        and R.type = Code 'breastfeeding-intention' from "http://example.org/dataelements"
+define "Intention Not To Breastfeed Code":
+  Code 'breastfeeding-intention' from "http://example.org/dataelements"
 
-/* Other options for representing negative breastfeeding intention
-// NOTE: In the QDM, this is expressed as the "absence of an intention to breast feed",
-// but this is not the same as the intended "presence of intention not to breast feed"
-define "Intention Not To Breast Feed":
-  EncounterInpatient E
-    with [Communication] C
-      such that C.sender is Patient
-        and exists (C.recipient R where R is Practitioner)
-        and C.sent <= 1 hour after start of "Infant Birth Date"
-        // NOTE: This code may be temporary (situational?)
-        // Could potentially relate it to the procedure as an assertion to overcome that? May need to be a different code altogether
-        and C.category contains Code '636111000124114' from "SNOMED-CT" display: 'Mother refuses to breastfeed (situation)'
+define "Intention Not To Breastfeed":
+  "Inpatient Encounter" Encounter
+    with [RiskAssessment: "Intention Not To Breastfeed Code"] RiskAssessment
+      such that RiskAssessment.date in Encounter.period
 
-// Single Code Value-set versus inline Code
-define "Intention Not To Breast Feed":
-  EncounterInpatient E
-    with [Communication: "Feeding Intention-Not-To-Breastfeed"]
-      such that C.sender is Patient
-        and exists (C.recipient R where R is Practitioner)
-        and C.sent <= 1 hour after start of "Infant Birth Date"
-
-define "Intention Not To Breast Feed":
-  EncounterInpatient E
-    with [Communication] C
-      such that C.sender is Patient
-        and C.category contains Code '636111000124114' from "SNOMED-CT" display: 'Mother refuses to breastfeed (situation)'
-        and exists (C.recipient R where R is Practitioner)
-        and C.sent <= 1 hour after start of "Infant Birth Date"
-*/
-
-define DenominatorExclusions2:
-  DenominatorExclusions1
+define "Denominator Exclusions 2":
+  "Denominator Exclusions 1"
     union "Intention Not To Breast Feed"
 
 // EndRegion: Denominator Exclusions 2
 
 // Region: Numerator 2
 
-define Numerator2:
-  Numerator1
+define "Numerator 2":
+  "Numerator 1"
 
 // EndRegion: Numerator 2
 
@@ -190,14 +166,13 @@ define Numerator2:
 // NONE
 // End Region: Stratification 2
 
+// Region: Supplemental Data
 
-/*
-// TODO: How do we represent Supplemental Data Elements in the CQL?
-Supplemental Data Elements
-
-    "Patient Characteristic Ethnicity: Ethnicity" using "Ethnicity CDCREC Value Set (2.16.840.1.114222.4.11.837)"
-    "Patient Characteristic Payer: Payer" using "Payer SOP Value Set (2.16.840.1.114222.4.11.3591)"
-    "Patient Characteristic Race: Race" using "Race CDCREC Value Set (2.16.840.1.114222.4.11.836)"
-    "Patient Characteristic Sex: ONC Administrative Sex" using "ONC Administrative Sex AdministrativeGender Value Set (2.16.840.1.113762.1.4.1)"
-
+/* TODO: Update these for FHIR, these are the QDM data elements...
+define "Ethnicity": ["Patient Characteristic Ethnicity": "Ethnicity CDCREC"]
+define "Payer": ["Patient Characteristic Payer": "Payer SOP"]
+define "Race": ["Patient Characteristic Race": "Race CDCREC"]
+define "Sex": ["Patient Characteristic Sex": "ONC Administrative Sex AdministrativeGender"]
 */
+
+// EndRegion: Supplemental Data

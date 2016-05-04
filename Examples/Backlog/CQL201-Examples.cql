@@ -1,3 +1,15 @@
+/* Encounters that were performed */
+["Encounter, Performed": "Inpatient"] Encounter
+  where Encounter.negationRationale is null
+
+/* Encounters that were not performed */
+["Encounter, Performed": "Inpatient"] Encounter
+  where Encounter.negationRationale is not null
+
+/* Encounters that were not performed for a specific reason */
+["Encounter, Performed": "Inpatient"] Encounter
+  where Encounter.negationRationale in "Encounter Not Done Reason"
+
 ///////////////////////////////////////
 // Filtering by Existence
 
@@ -5,49 +17,47 @@
   "Occurrence A of Laboratory Test, Performed: CD4+ Count (result)"
 */
 
-define "$CD4+ Count With Results and Medications":
-  ["Laboratory Test, Performed": "CD4+ Count"] LTP
-    where LTP.result is not null
+define "CD4+ Count With Results and Medications":
+  ["Laboratory Test, Performed": "CD4+ Count"] CD4Count
+    where CD4Count.result is not null
 
 // Comparison to null is not correct
 
-define "$CD4+ Count With Results and Medications":
-  ["Laboratory Test, Performed": "CD4+ Count"] LTP
-    where LTP.result <> null
+define "CD4+ Count With Results and Medications":
+  ["Laboratory Test, Performed": "CD4+ Count"] CD4Count
+    where CD4Count.result <> null
 
 // This will fail because comparisons involving null are "unknown"
 
 ///////////////////////////////////////////
 // Filtering by Value Set
 
-
-define "$Denominator Exclusions 1":
-  "$Encounter Inpatient" E
-    where E.facilityLocation in "Neonatal Intensive Care Unit (NICU)"
-      or E.dischargeStatus in "Patient Expired"
-      or E.dischargeStatus in "Discharge To Acute Care Facility"
-
+define "Denominator Exclusions 1":
+  "Encounter Inpatient" Encounter
+    where Encounter.facilityLocation in "Neonatal Intensive Care Unit (NICU)"
+      or Encounter.dischargeStatus in "Patient Expired"
+      or Encounter.dischargeStatus in "Discharge To Acute Care Facility"
 
 ///////////////////////////////////////////////
 // Filtering by Code
 
 codesystem "SNOMED-CT": '2.16.840.1.113883.6.96' version '2016A'
 
-define "$Breastfeeding Intention":
+define "Breastfeeding Intention Code":
   Code '123456789' from "SNOMED-CT" display 'Breastfeeding intention'
 
-define "$Has Breastfeeding Intention":
-  ["Risk Assessment, Performed": "$Breastfeeding Intention"] R
-    where R.negationRationale is null
+define "Breastfeeding Intention":
+  ["Risk Assessment, Performed": "Breastfeeding Intention Code"] RiskAssessment
+    where RiskAssessment.negationRationale is null
 
 //////////////////////////////////////////////
 // Filtering by Values and Quantities
 
 /* "Laboratory Test, Performed: LDL-c Test (result < 100 mg/dL)" */
 
-define "$LDL-c Test In Range":
-  ["Laboratory Test, Performed": "LDL-c Test"] LT
-    where LT.result < 100 "mg/dL"
+define "LDL-c Test In Range":
+  ["Laboratory Test, Performed": "LDL-c Test"] LDLCTest
+    where LDLCTest.result < 100 "mg/dL"
 
 
 //////////////////////////////////////////////
@@ -57,18 +67,18 @@ define "$LDL-c Test In Range":
   "Encounter, Performed: Hospital Inpatient" starts before start of "Diagnosis: Diabetes"
 */
 
-define "$Valid Encounters":
-  ["Encounter, Performed": "Hospital Inpatient"] E
-    with ["Diagnosis": "Diabetes"] D
-      such that E.admissionDatetime occurs before D.onsetDatetime
+define "Valid Encounters":
+  ["Encounter, Performed": "Hospital Inpatient"] Encounter
+    with ["Diagnosis": "Diabetes"] Diagnosis
+      such that Encounter.admissionDatetime occurs before Diagnosis.onsetDatetime
 
 ///////////////////////////////////////////////
 // Date and Time comparisons
 
-define "$Valid Encounters":
-  ["Encounter, Performed": "Hospital Inpatient"] E
-    with ["Diagnosis": "Diabetes"] D
-      such that E.admissionDatetime occurs same day as D.onsetDatetime
+define "Valid Encounters":
+  ["Encounter, Performed": "Hospital Inpatient"] Encounter
+    with ["Diagnosis": "Diabetes"] Diagnosis
+      such that Encounter.admissionDatetime occurs same day as Diagnosis.onsetDatetime
 
 ///////////////////////////////////////////////
 // Interval comparisons
@@ -77,11 +87,11 @@ define "$Valid Encounters":
   "Encounter, Performed: Hospital Inpatient" during "Diagnosis: Diabetes"
 */
 
-define "$Valid Encounters":
-  ["Encounter, Performed": "Hospital Inpatient"] E
-    with ["Diagnosis": "Diabetes"] D
-      such that Interval[E.admissionDatetime, E.dischargeDatetime]
-        during Interval[D.onsetDatetime, D.abatementDatetime]
+define "Valid Encounters":
+  ["Encounter, Performed": "Hospital Inpatient"] Encounter
+    with ["Diagnosis": "Diabetes"] Diagnosis
+      such that Interval[Encounter.admissionDatetime, Encounter.dischargeDatetime]
+        during Interval[Diagnosis.onsetDatetime, Diagnosis.abatementDatetime]
 
 /////////////////////////////////////////////////
 // Combining Conditions
@@ -93,10 +103,10 @@ define "$Valid Encounters":
     starts after start of "Measurement Start Date"
 */
 
-define "$Valid Encounters":
-  ["Encounter, Performed": "BH Outpatient encounter"] EP
-    where EP.admissionDateTime occurs 42 days or less before end of "Measurement Period"
-      and EP.admissionDateTime occurs after start of "Measurement Period"
+define "Valid Encounters":
+  ["Encounter, Performed": "BH Outpatient encounter"] Encounter
+    where Encounter.admissionDateTime occurs 42 days or less before end of "Measurement Period"
+      and Encounter.admissionDateTime occurs after start of "Measurement Period"
 
 /*
   AND: "Occurrence A of Encounter, Performed: HIV Visit" during "Measurement Period"
@@ -105,14 +115,14 @@ define "$Valid Encounters":
     starts after end of "Occurrence A of Encounter, Performed: HIV Visit"
 */
 
-define "$HIV Visits During Measurement Period":
-  ["Encounter, Performed": "HIV Visit"] EP
-    where Interval[EP.admissionDateTime, EP.dischargeDateTime] during "Measurement Period"
+define "HIV Visits During Measurement Period":
+  ["Encounter, Performed": "HIV Visit"] Encounter
+    where Interval[Encounter.admissionDateTime, Encounter.dischargeDateTime] during "Measurement Period"
 
-define "$HIV Followup Visits":
-  "$HIV Visits During Measurement Period" V1
-    with "$HIV Visits During Measurement Period" V2
-      such that V1.admissionDateTime occurs 90 days or more after V2.dischargeDateTime
+define "HIV Followup Visits":
+  "HIV Visits During Measurement Period" FollowupVisit
+    with "HIV Visits During Measurement Period" PriorVisit
+      such that FollowupVisit.admissionDateTime occurs 90 days or more after PriorVisit.dischargeDateTime
 
 /*
   AND: "Occurrence A of Medication, Order: Dapsone and pyrimethamine" <=
@@ -122,17 +132,16 @@ define "$HIV Followup Visits":
       CD4+ Count (result)"
 */
 
-define "$CD4+ Count With Results and Medications":
-  ["Laboratory Test, Performed": "CD4+ Count"] LTP
-    with ["Medication, Order": "Dapsone and pyrimethamine"] MODP
-      such that MODP.signedDatetime occurs 3 months or less after LTP.stopDateTime
-    with ["Medication, Order": "Leucovorin"] MOL
-      such that MOL.signedDatetime occurs 3 months or less after LTP.stopDateTime
-    where LTP.result is not null
+define "CD4+ Count With Results and Medications":
+  ["Laboratory Test, Performed": "CD4+ Count"] CD4Count
+    with ["Medication, Order": "Dapsone and pyrimethamine"] DapsoneOrder
+      such that DapsoneOrder.signedDatetime occurs 3 months or less before CD4Count.stopDateTime
+    with ["Medication, Order": "Leucovorin"] LeucovorinOrder
+      such that LeucovorinOrder.signedDatetime occurs 3 months or less before CD4Count.stopDateTime
+    where CD4Count.result is not null
 
 /////////////////////////////////////////////////////////////////
 // CMS 126 v4
-
 
 /*
 Initial Population =
@@ -170,15 +179,15 @@ Denominator Exceptions =
     None
 */
 
-define "$In Demographic":
+define "In Demographic":
   AgeInYearsAt(start of "Measurement Period") >= 5
     and AgeInYearsAt(start of "Measurement Period") < 65
 
-define "$Asthma Diagnosis":
-  ["Diagnosis": "Persistent Asthma"] D
-    where Interval[D.onsetDatetime, D.abatementDatetime] overlaps "Measurement Period"
+define "Asthma Diagnosis":
+  ["Diagnosis": "Persistent Asthma"] Diagnosis
+    where Interval[Diagnosis.onsetDatetime, Diagnosis.abatementDatetime] overlaps "Measurement Period"
 
-define "$Valid Encounters":
+define "Valid Encounters":
   (["Encounter, Performed": "Office Visit"]
     union ["Encounter, Performed": "Face-to-Face Interaction"]
     union ["Encounter, Performed": "Preventive Care - Established Office Visit, 0 to 17"]
@@ -188,27 +197,26 @@ define "$Valid Encounters":
     union ["Encounter, Performed": "Home Healthcare Services"]
   ) E where Interval[E.admissionDateTime, E.dischargeDateTime] during "Measurement Period"
 
-define "$In Initial Population":
-  "$In Demographic"
-    and exists "$Asthma Diagnosis"
-    and exists "$Valid Encounters"
+define "In Initial Population":
+  "In Demographic"
+    and exists "Asthma Diagnosis"
+    and exists "Valid Encounters"
 
-define "$In Denominator":
-  "$In Initial Population" // Can repeat the condition, or omit the definition as implied by the structure of the measure
+// Denominator is the same as the initial population
 
-define "$Exclusionary Diagnoses":
+define "Excepted Diagnoses":
   (["Diagnosis": "Chronic Obstructive Pulmonary Disease"]
     union ["Diagnosis": "Emphysema"]
     union ["Diagnosis": "Cystic Fibrosis"]
     union ["Diagnosis": "Actue Repiratory Failure"]
-  ) D where Interval[D.onsetDatetime, D.abatementDatetime] overlaps "Measurement Period"
+  ) Diagnosis where Interval[Diagnosis.onsetDatetime, Diagnosis.abatementDatetime] overlaps "Measurement Period"
 
-define "$Denominator Exceptions":
-  exists "$Exclusionary Diagnoses"
+define "Denominator Exceptions":
+  exists "Excepted Diagnoses"
 
-define "$Preferred Asthma Therapy":
-  ["Medication, Dispensed": "Preferred Asthma Therapy"] MD
-    where Interval[MD.startDatetime, MD.stopDateTime] during "Measurement Period"
+define "Preferred Asthma Therapy":
+  ["Medication, Dispensed": "Preferred Asthma Therapy"] Medication
+    where Interval[Medication.startDatetime, Medication.stopDateTime] during "Measurement Period"
 
-define "$Numerator":
-  exists "$Preferred Asthma Therpay"
+define "Numerator":
+  exists "Preferred Asthma Therpay"

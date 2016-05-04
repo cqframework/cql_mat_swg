@@ -6,7 +6,7 @@
     * "Medication, Administered not done: Patient Refusal" for "Antithrombotic Therapy"
 */
 
-define "$Antithrombotic Not Done":
+define "Antithrombotic Not Done":
   (["Medication, Order": "Antithrombotic ingredient specific"]
     union ["Medication, Order": "Antithrombotic Therapy"]) O
       where O.negationRationale in ("Medical Reason" union "Patient Refusal")
@@ -17,11 +17,11 @@ define "$Antithrombotic Not Done":
     * "Medication, Discharge not done: Medical Reason" for "Statin ingredeient specific"
 */
 
-define "$Statin At Discharge Not Done":
-  ["Medication, Discharge": "Statin ingredient specific"] MD
-    //where MD.negationRationale in ("Patient Refusal" union "Medical Reason")
-    where MD.negationRationale in "Patient Refusal"
-      or MD.negationRationale in "Medical Reason"
+define "Statin At Discharge Not Done":
+  ["Medication, Discharge": "Statin ingredient specific"] Medication
+    //where Medication.negationRationale in ("Patient Refusal" union "Medical Reason")
+    where Medication.negationRationale in "Patient Refusal"
+      or Medication.negationRationale in "Medical Reason"
 
 /*
   Union of:
@@ -33,7 +33,7 @@ define "$Statin At Discharge Not Done":
     * "Device, Order not done: Medical Reason" for "Graduated compression stockings (GCS)"
 */
 
-define "$No Device VTE Prophylaxis Medical Reason":
+define "No Device VTE Prophylaxis Medical Reason":
   (["Device, Applied": "Intermittent pneumatic compression devices (IPC)"]
       union ["Device, Applied": "Venous foot pumps (VFP)"]
       union ["Device, Applied": "Graduated compression stockings (GCS)"]

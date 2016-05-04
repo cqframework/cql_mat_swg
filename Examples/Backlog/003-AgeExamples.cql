@@ -3,13 +3,10 @@
   AND: Age < 18 year(s) at: "Measurement Period"
 */
 
-define "$In Demographic":
+define "In Demographic":
   AgeInYearsAt(start of "Measurement Period") >= 2
     and AgeInYearsAt(start of "Measurement Period") < 18
 
 
-define "$In Demographic":
+define "In Demographic":
   Common.InAgeRangeAt([2, 18), start of "Measurement Period")
-
-
-EP.admissionDateTime 42 days or more before end of "Measurement Period"

@@ -34,15 +34,15 @@ Denominator Exceptions =
     None
 */
 
-define "$In Demographic":
+define "In Demographic":
   AgeInYearsAt(start of "Measurement Period") >= 5
     and AgeInYearsAt(start of "Measurement Period") < 65
 
-define "$Asthma Diagnosis":
-  ["Diagnosis": "Persistent Asthma"] D
-    where Interval[D.onsetDatetime, D.abatementDatetime] overlaps "Measurement Period"
+define "Asthma Diagnosis":
+  ["Diagnosis": "Persistent Asthma"] Diagnosis
+    where Interval[Diagnosis.onsetDatetime, Diagnosis.abatementDatetime] overlaps "Measurement Period"
 
-define "$Valid Encounters":
+define "Valid Encounters":
   (["Encounter, Performed": "Office Visit"]
     union ["Encounter, Performed": "Face-to-Face Interaction"]
     union ["Encounter, Performed": "Preventive Care - Established Office Visit, 0 to 17"]
@@ -52,27 +52,27 @@ define "$Valid Encounters":
     union ["Encounter, Performed": "Home Healthcare Services"]
   ) E where Interval[E.admissionDateTime, E.dischargeDateTime] during "Measurement Period"
 
-define "$In Initial Population":
-  "$In Demographic"
-    and exists "$Asthma Diagnosis"
-    and exists "$Valid Encounters"
+define "In Initial Population":
+  "In Demographic"
+    and exists "Asthma Diagnosis"
+    and exists "Valid Encounters"
 
-define "$In Denominator":
-  "$In Initial Population" // Can repeat the condition, or omit the definition as implied by the structure of the measure
+define "In Denominator":
+  "In Initial Population" // Can repeat the condition, or omit the definition as implied by the structure of the measure
 
-define "$Exclusionary Diagnoses":
+define "Exclusionary Diagnoses":
   (["Diagnosis": "Chronic Obstructive Pulmonary Disease"]
     union ["Diagnosis": "Emphysema"]
     union ["Diagnosis": "Cystic Fibrosis"]
     union ["Diagnosis": "Actue Repiratory Failure"]
-  ) D where Interval[D.onsetDatetime, D.abatementDatetime] overlaps "Measurement Period"
+  ) Diagnosis where Interval[Diagnosis.onsetDatetime, Diagnosis.abatementDatetime] overlaps "Measurement Period"
 
-define "$Denominator Exceptions":
-  exists "$Exclusionary Diagnoses"
+define "Denominator Exceptions":
+  exists "Exclusionary Diagnoses"
 
-define "$Preferred Asthma Therapy":
-  ["Medication, Dispensed": "Preferred Asthma Therapy"] MD
-    where Interval[MD.startDatetime, MD.stopDateTime] during "Measurement Period"
+define "Preferred Asthma Therapy":
+  ["Medication, Dispensed": "Preferred Asthma Therapy"] Medication
+    where Interval[Medication.startDatetime, Medication.stopDateTime] during "Measurement Period"
 
-define "$Numerator":
-  exists "$Preferred Asthma Therpay"
+define "Numerator":
+  exists "Preferred Asthma Therpay"

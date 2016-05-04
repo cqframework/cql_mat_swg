@@ -5,10 +5,10 @@
     starts after start of "Measurement Start Date"
 */
 
-define "$Valid Encounters":
-  ["Encounter, Performed": "BH Outpatient encounter"] EP
-    where EP.admissionDateTime occurs 42 days or less before end of "Measurement Period"
-      and EP.admissionDateTime occurs after start of "Measurement Period"
+define "Valid Encounters":
+  ["Encounter, Performed": "BH Outpatient encounter"] Encounter
+    where Encounter.admissionDateTime occurs 42 days or less before end of "Measurement Period"
+      and Encounter.admissionDateTime occurs after start of "Measurement Period"
 
 /*
   AND: "Occurrence A of Encounter, Performed: HIV Visit" during "Measurement Period"
@@ -18,23 +18,23 @@ define "$Valid Encounters":
 */
 
 define "HIV Visits During Measurement Period":
-  ["Encounter, Performed": "HIV Visit"] EP
-    where Interval[EP.admissionDateTime, EP.dischargeDateTime] during "Measurement Period"
+  ["Encounter, Performed": "HIV Visit"] Encounter
+    where Interval[Encounter.admissionDateTime, Encounter.dischargeDateTime] during "Measurement Period"
 
 Visit { admissionDateTime: 2015-01-01 }
 Visit { admissionDateTime: 2015-03-01 }
 Visit { admissionDateTime: 2015-06-01 }
 
 define "HIV Followup Visits":
-  "HIV Visits During Measurement Period" V1
-    with "$HIV Visits During Measurement Period" V2
-      such that V1.admissionDateTime occurs 90 days or more after V2.dischargeDateTime
+  "HIV Visits During Measurement Period" FollowupVisit
+    with "HIV Visits During Measurement Period" PriorVisit
+      such that FollowupVisit.admissionDateTime occurs 90 days or more after PriorVisit.dischargeDateTime
 
 Visit { admissionDateTime: 2015-03-01 }
 Visit { admissionDateTime: 2015-06-01 }
 
 define "Most Recent HIV Followup Visit":
-  First("HIV Followup Visits" V sort by { V1.admissionDateTime desc })
+  First("HIV Followup Visits" Visit sort by { Visit.admissionDateTime desc })
 
 /*
   AND: "Occurrence A of Medication, Order: Dapsone and pyrimethamine" <=
@@ -44,20 +44,20 @@ define "Most Recent HIV Followup Visit":
       CD4+ Count (result)"
 */
 
-define "$CD4+ Count With Results and Medications":
-  ["Laboratory Test, Performed": "CD4+ Count"] LTP
-    with ["Medication, Order": "Dapsone and pyrimethamine"] MODP
-      such that MODP.signedDatetime occurs 3 months or less after LTP.stopDateTime
-    with ["Medication, Order": "Leucovorin"] MOL
-      such that MOL.signedDatetime occurs 3 months or less after LTP.stopDateTime
-    where LTP.result is not null
+define "CD4+ Count With Results and Medications":
+  ["Laboratory Test, Performed": "CD4+ Count"] CD4Count
+    with ["Medication, Order": "Dapsone and pyrimethamine"] DapsoneOrder
+      such that DapsoneOrder.signedDatetime occurs 3 months or less after CD4Count.stopDateTime
+    with ["Medication, Order": "Leucovorin"] LeucovorinOrder
+      such that LeucovorinOrder.signedDatetime occurs 3 months or less after CD4Count.stopDateTime
+    where CD4Count.result is not null
 
 define "CD4+ Count With Results and Medications":
-  ["Laboratory Test, Performed": "CD4+ Count"] LTP
-    with ["Medication, Order": "Dapsone and pyrimethamine"] MODP
-      such that MODP.signedDatetime occurs 3 months or less after LTP.stopDateTime
+  ["Laboratory Test, Performed": "CD4+ Count"] CD4Count
+    with ["Medication, Order": "Dapsone and pyrimethamine"] DapsoneOrder
+      such that DapsoneOrder.signedDatetime occurs 3 months or less after CD4Count.stopDateTime
 
 define "Dapsone and pyrimethamine Orders with CD4+ Count Laboratory Tests"
-  ["Medication, Order": "Dapsone and pyrimethamine"] MODP
-    with ["Laboratory Test, Performed": "CD4+ Count"] LTP
-      such that MODP.signedDatetime occurs 3 months or less after LTP.stopDateTime
+  ["Medication, Order": "Dapsone and pyrimethamine"] DapsoneOrder
+    with ["Laboratory Test, Performed": "CD4+ Count"] CD4Count
+      such that DpasoneOrder.signedDatetime occurs 3 months or less after CD4Count.stopDateTime

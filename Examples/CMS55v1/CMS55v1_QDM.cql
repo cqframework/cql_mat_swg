@@ -53,21 +53,33 @@ parameter "Measurement Period" default Interval[@2014-01-01T00:00:00.0, @2015-01
 
 context Patient
 
-define "$Inpatient Encounters":
-	["Encounter, Performed": "Inpatient"] E
-		where E.lengthOfStay <= 120 days
-			and E.dischargeDatetime during "Measurement Period"
+define "Inpatient Encounters":
+	["Encounter, Performed": "Inpatient"] Encounter
+		where Encounter.lengthOfStay <= 120 days
+			and Encounter.dischargeDatetime during "Measurement Period"
 
-define "$Emergency Department Encounters":
-	["Encounter, Performed": "Emergency Department Visit"] ED
-		with "$Inpatient Encounters" E such that ED.dischargeDatetime 1 hour or less before E.admissionDatetime
+define "Emergency Department Encounters":
+	["Encounter, Performed": "Emergency Department Visit"] EmergencyEncounter
+		with "Inpatient Encounters" InpatientEncounter
+			such that EmergencyEncounter.dischargeDatetime 1 hour or less before InpatientEncounter.admissionDatetime
 
-define "$Measure Observation":
-	"$Emergency Department Encounters" E
-		where E.admissionDatetime is not null
-			and E.dischargeDatetime is not null
-		return minutes between E.facilityLocationArrivalDatetime and E.facilityLocationDepartureDatetime
+define "Measure Population":
+	"Emergency Department Encounters" Encounter
+		where Encounter.admissionDatetime is not null
+			and Encounter.dischargeDatetime is not null
 
-context Population
+// Measure Observation
+define function EDStayTime(Encounter "Encounter, Performed")
+	return minutes between Encounter.facilityLocationArrivalDatetime and Encounter.facilityLocationDepartureDatetime
 
-define "$Measure Score": Median("$Measure Observation")
+// NOTE: The calculation method is specified in the HQMF, so will not be specified here
+// The measure calculates the Median of EDStayTime
+
+/*
+define "Measure Population":
+	"Emergency Department Encounters" Encounter,
+		["Medication, Administered"] Medication
+	where Encounter.admissionDateTime <= Medication.startDatetime
+
+define function CalculateMeasureObservation(T Tuple(E "Encounter, Performed", M "Medication, Administered"))
+*/
