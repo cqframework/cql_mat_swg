@@ -185,15 +185,14 @@ CommunicationRequest {
 
 define "Create Lactation Consult Request":
   ReferralRequest {
-    status: 'draft',
+    status: 'requested',
     date: Now(),
-    type: Code 'consult' display 'Consult',
+    type: Code 'lactation-consult' from "http://example.org/consultations" display: 'Lactation Consult',
     priority: Code 'routine' from "http://hl7.org/fhir/diagnostic-order-priority" display: 'Routine'
     patient: Patient,
     requester: "Primary Provider", // TODO: This should actually be the device, but the ReferralRequest doesn't support that
     encounter: "Live Birth Encounter",
     reason: Code 'negative' from "http://example.org/breastfeeding-intention" display: 'Intention not to breast feed',
     description: 'Mother has declared an intention not to breastfeed, despite being given appropriate education regarding the benefits of exclusive breastmilk feeding.',
-    fulfillmentTime: Now(),
-    serviceRequested: Code 'lactation-consult' from "http://example.org/consultations" display: 'Lactation Consult'
+    fulfillmentTime: Now()
   }
