@@ -1,6 +1,6 @@
 library CMS9v4_CDS version '1'
 
-using FHIR version '1.4'
+using FHIR // version '1.4'
 
 valueset "Feeding Intention-Breast": '2.16.840.1.113762.1.4.1045.29'
 valueset "Feeding Intention-Not-To-Breast": 'TBD' // Code '636111000124114' from "SNOMED-CT" display: 'Mother refuses to breastfeed (situation)'
@@ -120,7 +120,7 @@ define "Create Breastfeeding Risk Assessment":
     subject: Patient,
     code: Concept {
       Code 'breastfeeding-readiness-assessment' from "http://example.org/documentation-templates"
-      display: 'Breastfeeding Readiness Assessment'
+      display 'Breastfeeding Readiness Assessment'
     },
     reason: "Single Live Birth",
     scheduled: Now(),
@@ -146,7 +146,7 @@ define "Communication Request to Provider":
     reason: "Single Live Birth",
     requestedOn: Now(),
     subject: Patient,
-    priority: Code 'routine' from "http://hl7.org/fhir/diagnostic-order-priority" display: 'Routine'
+    priority: Code 'routine' from "http://hl7.org/fhir/diagnostic-order-priority" display 'Routine'
   }
 
 define "Communication Request to Charge Nurse":
@@ -163,7 +163,7 @@ CommunicationRequest {
   reason: "Single Live Birth",
   requestedOn: Now(),
   subject: Patient,
-  priority: Code 'routine' from "http://hl7.org/fhir/diagnostic-order-priority" display: 'Routine'
+  priority: Code 'routine' from "http://hl7.org/fhir/diagnostic-order-priority" display 'Routine'
 }
 
 define "Communication Request to Bedside Nurse":
@@ -180,19 +180,19 @@ CommunicationRequest {
   reason: "Single Live Birth",
   requestedOn: Now(),
   subject: Patient,
-  priority: Code 'routine' from "http://hl7.org/fhir/diagnostic-order-priority" display: 'Routine'
+  priority: Code 'routine' from "http://hl7.org/fhir/diagnostic-order-priority" display 'Routine'
 }
 
 define "Create Lactation Consult Request":
   ReferralRequest {
     status: 'requested',
     date: Now(),
-    type: Code 'lactation-consult' from "http://example.org/consultations" display: 'Lactation Consult',
-    priority: Code 'routine' from "http://hl7.org/fhir/diagnostic-order-priority" display: 'Routine'
+    type: Code 'lactation-consult' from "http://example.org/consultations" display 'Lactation Consult',
+    priority: Code 'routine' from "http://hl7.org/fhir/diagnostic-order-priority" display 'Routine',
     patient: Patient,
     requester: "Primary Provider", // TODO: This should actually be the device, but the ReferralRequest doesn't support that
     encounter: "Live Birth Encounter",
-    reason: Code 'negative' from "http://example.org/breastfeeding-intention" display: 'Intention not to breast feed',
+    reason: Code 'negative' from "http://example.org/breastfeeding-intention" display 'Intention not to breast feed',
     description: 'Mother has declared an intention not to breastfeed, despite being given appropriate education regarding the benefits of exclusive breastmilk feeding.',
     fulfillmentTime: Now()
   }
